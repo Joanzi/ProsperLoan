@@ -1,0 +1,1180 @@
+---
+title: "ProsperLoan"
+author: "Joanzi"
+date: "August 16, 2016"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, message = FALSE, warning= FALSE)
+```
+# Introduction
+
+This a loan dataset from Prosper. 
+I choose 15 variables to analysis, which are EstimatedReturn, ProsperScore, Occupation, IsborroweHomeowner, TotalCreditLinespast7years, Totalinquiries, DelinquenciesLast7Years, TotalTrades, DebtToIncomeRatio, IncomeRangee,  TotalProsperPaymentsBilled, ProsperPrincipalBorrowed, ProsperPrincipalOutstanding, LoanOriginalAmount, and MonthlyLoanPayment. 
+There are lots of NA values in each column of dataset, which I won't get rid of from the dataset other than remove them in respective variable analysis to make as large as possible use of the observations.
+
+# Dataset
+
+## packages loaded
+```{r}
+library(ggplot2)
+library(dplyr)
+library(gridExtra)
+library(grid)
+library(SparseM)
+```
+
+## data prepared
+```{r}
+# load dataset
+pld <- read.csv("D:/Udacity/prosperLoanData.csv")
+
+dim(pld)
+
+# a dataset including all 16 variables
+pld.ana <- pld[, c("EstimatedReturn", "ProsperScore", "Occupation", "IsBorrowerHomeowner", 
+                   "TotalCreditLinespast7years", "TotalInquiries", "DelinquenciesLast7Years", "TotalTrades", "DebtToIncomeRatio", "IncomeRange", "TotalProsperPaymentsBilled", "ProsperPrincipalBorrowed", "ProsperPrincipalOutstanding", "LoanOriginalAmount", "MonthlyLoanPayment")]
+
+str(pld.ana)
+dim(pld.ana)
+
+# 7 occupations selected
+occupation_sel <- factor(c("Accountant/CPA", "Administrative Assistant", "Computer Programmer", "Executive", "Sales - Commission", "Teacher"))
+pld.Occupation <- pld.ana[pld.ana$Occupation %in% occupation_sel, ]
+# 7 occupation levels
+pld.Occupation$Occupation <- factor(pld.Occupation$Occupation)
+
+# variable "ProsperScore" to factor
+pld.ana$ProsperScore <- factor(pld.ana$ProsperScore)
+```
+
+The origianl data contains 81 varibales and 113937 observations, and the analysed data contains 16 variables and 113937 observations. 
+The "TotalProsperLoans" factor has 0-8 levels.
+The "ProsperScore" factor has 0-11 levels.
+
+## Univariate Analysis
+
+```{r}
+# data summary
+summary(pld.ana)
+
+# histograms 
+range(pld.ana$EstimatedReturn, na.rm = TRUE)
+ggplot(aes(EstimatedReturn), data = subset(pld.ana, !is.na(EstimatedReturn))) +
+  geom_histogram()
+```
+
+The range of EstimatedReturn is -0.1827 upto 0.2837, from the histogram, we can see that most of the return is between 0 and 0.2.
+
+```{r}
+# adjusted histogram
+plt_EstimatedReturn <- ggplot(aes(EstimatedReturn), data = subset(pld, !is.na(EstimatedReturn))) + geom_histogram(binwidth = 0.001) +
+  xlim(0, 0.2)
+plt_EstimatedReturn
+```
+
+The most frequent return is arount 0.125, and the distribution seems to be kind of multi-model.
+
+```{r}
+summary(pld.ana$EstimatedReturn)
+```
+
+
+
+```{r}
+# histogram of TotalCreditLinespast7years
+range(pld.ana$TotalCreditLinespast7years, na.rm = TRUE)
+plt_TotalCreditLinespast7years <- ggplot(aes(TotalCreditLinespast7years), data = subset(pld.ana, !is.na(TotalCreditLinespast7years))) +
+  geom_histogram(binwidth = .2) +
+  scale_x_continuous(limits = c(0, 120), breaks = seq(0, 120, 20))
+plt_TotalCreditLinespast7years 
+```
+
+The mode of TotalCreditLinespast7years is a little bit more than 20, and the distribution is close to normal.
+
+```{r}
+summary(pld.ana$TotalCreditLinespast7years)
+```
+
+
+
+```{r}
+# histogram of TotalInquiries
+range(pld.ana$TotalInquiries, na.rm = TRUE)
+plt_TotalInquiries <- ggplot(aes(TotalInquiries), data = subset(pld.ana, !is.na(TotalInquiries))) +
+  geom_histogram(binwidth = 0.5) +
+  scale_x_continuous(limits = c(0, 60), breaks = seq(0, 60, 10))
+plt_TotalInquiries
+```
+
+The TotalInquiries variable obivously is positively-skewed distributed.
+
+```{r}
+summary(pld.ana$TotalInquiries)
+```
+
+
+
+```{r}
+# histogram of DelinquenciesLast7Years
+range(pld.ana$DelinquenciesLast7Years, na.rm = TRUE)
+plt_DelinquenciesLast7Years <- ggplot(aes(DelinquenciesLast7Years), data = subset(pld.ana, !is.na(DelinquenciesLast7Years))) +
+  geom_histogram(binwidth = 0.5) 
+plt_DelinquenciesLast7Years
+```
+
+Mojarity of the delinquencies are 0, which means morjarity of loans were paid before due.
+
+```{r}
+summary(pld.ana$DelinquenciesLast7Years)
+```
+
+
+
+```{r} 
+# histogram of TotalTrades
+range(pld.ana$TotalTrades, na.rm = TRUE)
+plt_TotalTrades <- ggplot(aes(TotalTrades), data = subset(pld.ana, !is.na(TotalTrades))) +
+  geom_histogram(binwidth = 0.5)
+plt_TotalTrades
+```
+
+TotalTrades distribution is the similar to the variable of TotalCreditLinespast7years, which means the two variables are very close.
+
+```{r}
+summary(pld.ana$TotalTrades)
+```
+
+
+
+```{r}
+# histogram of DebtToIncomeRatio
+range(pld.ana$DebtToIncomeRatio, na.rm = TRUE)
+plt_DebtToIncomeRatio <- ggplot(aes(DebtToIncomeRatio), data = subset(pld.ana, !is.na(DebtToIncomeRatio))) +
+  geom_histogram(binwidth = 0.01)+
+  scale_x_continuous(limits = c(0, 1), breaks = seq(0, 1, 0.2))
+plt_DebtToIncomeRatio
+```
+
+```{r}
+summary(pld.ana$DebtToIncomeRatio)
+```
+
+The median here is 0.22, which is a little less than the mean of 0.276
+
+
+
+```{r}
+# histogram of TotalProsperPaymentsBilled
+range(pld.ana$TotalProsperPaymentsBilled, na.rm = TRUE)
+plt_TotalProsperPaymentsBilled <- ggplot(aes(TotalProsperPaymentsBilled), data = subset(pld.ana, !is.na(TotalProsperPaymentsBilled))) +
+  geom_histogram(binwidth = 0.5) +
+  scale_x_continuous(breaks = seq(0, 141, 25))
+plt_TotalProsperPaymentsBilled
+```
+
+The plot shows that the numbers of on time payments the borrower made on Prosper loans are mostly 6, 9, 35.
+
+```{r}
+summary(pld.ana$TotalProsperPaymentsBilled)
+```
+
+
+
+```{r}
+# histogram of ProsperPrincipalBorrowed
+range(pld.ana$ProsperPrincipalBorrowed, na.rm = TRUE)
+plt_ProsperPrincipalBorrowed <- ggplot(aes(log(ProsperPrincipalBorrowed+1)), data = subset(pld.ana, !is.na(ProsperPrincipalBorrowed))) +
+  geom_histogram(binwidth = 0.1) +
+  xlim(6,11)
+
+plt_ProsperPrincipalBorrowed 
+```
+
+The mode of the distribution is around 3000.
+
+```{r}
+summary(pld.ana$ProsperPrincipalBorrowed)
+```
+
+
+
+```{r}
+# histogram of ProsperPrincipalOutstanding
+range(pld.ana$ProsperPrincipalOutstanding, na.rm = TRUE)
+plt_ProsperPrincipalOutstanding <- ggplot(aes(log(ProsperPrincipalOutstanding+1)), data = subset(pld.ana, !is.na(ProsperPrincipalOutstanding))) +
+  geom_histogram() 
+
+plt_ProsperPrincipalOutstanding
+```
+
+Most of the outstanding of loan are 0.
+
+```{r}
+summary(pld.ana$ProsperPrincipalOutstanding)
+```
+
+
+
+```{r}
+# histogram of LoanOriginalAmount
+range(pld.ana$LoanOriginalAmount, na.rm = TRUE)
+plt_LoanOriginalAmount <- ggplot(aes(log(LoanOriginalAmount+1)), data = subset(pld.ana, !is.na(LoanOriginalAmount))) +
+  geom_histogram() 
+
+plt_LoanOriginalAmount
+```
+
+The values are distributed very unevenly, There are large counts at the values of 4000, 10000 and 15000.
+
+```{r}
+summary(pld.ana$LoanOriginalAmount)
+```
+
+
+```{r}
+# histogram of MonthlyLoanPayment
+range(pld.ana$MonthlyLoanPayment, na.rm = TRUE)
+plt_MonthlyLoanPayment <- ggplot(aes(log(MonthlyLoanPayment+1)), data = subset(pld.ana, !is.na(MonthlyLoanPayment))) +
+  geom_histogram(binwidth = .1) 
+
+plt_MonthlyLoanPayment
+```
+
+Bacially, all value frequency is under 3500, except the value of arount 140, whose frequecy is upto more than 8000.
+
+```{r}
+summary(pld.ana$MonthlyLoanPayment)
+```
+
+
+```{r fig.width = 15, fig.height = 15}
+# histograms with median line
+EstimatedReturnMedian <- median(pld.ana$EstimatedReturn, na.rm = TRUE)
+TotalCreditLinespast7yearsMedian <- median(pld.ana$TotalCreditLinespast7years, na.rm = TRUE)
+TotalInquiriesMedian <- median(pld.ana$TotalInquiries, na.rm = TRUE)
+DelinquenciesLast7YearsMedian <- median(pld.ana$DelinquenciesLast7Years, na.rm = TRUE)
+TotalTradesMedian <- median(pld.ana$TotalTrades, na.rm = TRUE)
+DebtToIncomeRatioMedian <- median(pld.ana$DebtToIncomeRatio, na.rm = TRUE)
+TotalProsperPaymentsBilledMedian <- median(pld.ana$TotalProsperPaymentsBilled, na.rm = TRUE)
+ProsperPrincipalBorrowedMedian <- median(pld.ana$ProsperPrincipalBorrowed, na.rm = TRUE)
+ProsperPrincipalOutstandingMedian <- median(pld.ana$ProsperPrincipalOutstanding, na.rm = TRUE)
+LoanOriginalAmountMedian <- median(pld.ana$LoanOriginalAmount, na.rm = TRUE)
+MonthlyLoanPaymentMedian <- median(pld.ana$MonthlyLoanPayment, na.rm = TRUE)
+
+plt_EstimatedReturn_MedianLine <- plt_EstimatedReturn + geom_vline(aes(xintercept = EstimatedReturnMedian), col = "royalblue", lwd = 1) +
+  annotate("text", x = 0.1, y = 2250, label = paste("median: ", EstimatedReturnMedian), colour = "red")
+
+plt_TotalCreditLinespast7years_MedianLine <- plt_TotalCreditLinespast7years + geom_vline(aes(xintercept = TotalCreditLinespast7yearsMedian), col = "royalblue", lwd = 1) +
+  annotate("text", x = 30, y = 3500, label = paste("median: ", TotalCreditLinespast7yearsMedian), colour = "red")
+
+plt_TotalInquiries_MedianLine <- plt_TotalInquiries + geom_vline(aes(xintercept = TotalInquiriesMedian), col = "royalblue", lwd = 1) +
+  annotate("text", x = 10, y = 15000, label = paste("median: ", TotalInquiriesMedian), colour = "red")
+
+plt_DelinquenciesLast7Years_MedianLine <- plt_DelinquenciesLast7Years + geom_vline(aes(xintercept = DelinquenciesLast7YearsMedian), col = "royalblue", lwd = 1) +
+  annotate("text", x = 13, y = 70000, label = paste("median: ", DelinquenciesLast7YearsMedian), colour = "red")
+
+plt_TotalTrades_MedianLine <- plt_TotalTrades + geom_vline(aes(xintercept = TotalTradesMedian), col = "royalblue", lwd = 1) +
+  annotate("text", x = 35, y = 3500, label = paste("median: ", TotalTradesMedian), colour = "red")
+
+plt_DebtToIncomeRatio_MedianLine <-plt_DebtToIncomeRatio + geom_vline(aes(xintercept = DebtToIncomeRatioMedian), col = "royalblue", lwd = 1) +
+  annotate("text", x = 0.4, y = 3500, label = paste("median: ", DebtToIncomeRatioMedian), colour = "red")
+
+plt_TotalProsperPaymentsBilled_MedianLine <- plt_TotalProsperPaymentsBilled + geom_vline(aes(xintercept = TotalProsperPaymentsBilledMedian), col = "royalblue", lwd = 1) +
+  annotate("text", x = 35, y = 1500, label = paste("median: ", TotalProsperPaymentsBilledMedian), colour = "red")
+
+plt_ProsperPrincipalBorrowed_MedianLine <- ggplot(aes(ProsperPrincipalBorrowed), data = subset(pld.ana, !is.na(ProsperPrincipalBorrowed))) +
+  geom_histogram(binwidth = 500)+ 
+  scale_x_continuous(limits = c(0, 70000), breaks = seq(0, 70000, 10000)) +
+  geom_vline(aes(xintercept = ProsperPrincipalBorrowedMedian), col = "royalblue", lwd = 1) + 
+  annotate("text", x = 10000, y = 2000, label = paste("median: ", ProsperPrincipalBorrowedMedian), colour = "red")
+
+plt_ProsperPrincipalOutstanding_MedianLine <- ggplot(aes(ProsperPrincipalOutstanding), data = subset(pld.ana, !is.na(ProsperPrincipalOutstanding))) +
+  geom_histogram(binwidth = 500)  + 
+  scale_x_continuous(limits = c(0, 20000), breaks = seq(0, 20000,2000)) +
+  geom_vline(aes(xintercept = ProsperPrincipalOutstandingMedian), col = "royalblue", lwd = 1) +
+  annotate("text", x = 4500, y = 7000, label = paste("median: ", ProsperPrincipalOutstandingMedian), colour = "red")
+
+plt_LoanOriginalAmount_MedianLine <- ggplot(aes(LoanOriginalAmount), data = subset(pld.ana, !is.na(LoanOriginalAmount))) +
+  geom_histogram(binwidth = 500)  + 
+  scale_x_continuous(limits = c(1000, 35000), breaks = seq(1000, 35000, 5000)) +
+  geom_vline(aes(xintercept = LoanOriginalAmountMedian), col = "royalblue", lwd = 1) +
+  annotate("text", x = 9000, y = 10000, label = paste("median: ", LoanOriginalAmountMedian), colour = "red")
+
+plt_MonthlyLoanPayment_MedianLine <- ggplot(aes(MonthlyLoanPayment+1), data = subset(pld.ana, !is.na(MonthlyLoanPayment))) +
+  geom_histogram(binwidth = 50)  +
+  scale_x_continuous(limits = c(0, 2000), breaks = seq(0, 2000, 400)) +
+  geom_vline(aes(xintercept = MonthlyLoanPaymentMedian), col = "royalblue", lwd = 1 ) +
+  annotate("text", x = 380, y = 12000, label = paste("median: ", MonthlyLoanPaymentMedian), colour = "red")
+
+grid.arrange(plt_EstimatedReturn_MedianLine, plt_TotalCreditLinespast7years_MedianLine, plt_TotalInquiries_MedianLine, plt_DelinquenciesLast7Years_MedianLine,
+             plt_TotalTrades_MedianLine, plt_DebtToIncomeRatio_MedianLine, plt_TotalProsperPaymentsBilled_MedianLine,
+             plt_ProsperPrincipalBorrowed_MedianLine, plt_ProsperPrincipalOutstanding_MedianLine, plt_LoanOriginalAmount_MedianLine, plt_MonthlyLoanPayment_MedianLine, ncol = 4)
+```
+
+
+```{r fig.width = 15, fig.height = 15}
+par(mfrow = c(3, 2), mar = c(4, 13, 2, 2))
+# histogram of IncomeRange
+barplot(table(pld.ana$IncomeRange), horiz = T, las = 2)
+title(main = "IncomeRange", cex.main = 2)
+
+# histogram of Occupation
+barplot(table(pld.Occupation$Occupation), horiz = T, las = 2)
+title(main = "Occupations", cex.main = 2)
+
+# histogram of IsBorrowerHomeowner
+barplot(table(pld.ana$IsBorrowerHomeowner), horiz = T, las = 2)
+title(main = "IsBorrowerHomeowner", cex.main = 2)
+
+# histogram of ProsperScore
+barplot(table(pld.ana$ProsperScore), horiz = T, las = 2)
+title(main = "ProsperScore", cex.main = 2)
+```
+
+IncomeRange of $25,000-$49,999 and $50,000-$74,999 have the most frequencies of around 30000.
+Occupations selected and the IsBorrowerHomeowner categories are basically equally distributed respectively.
+ProsperScore of 4,6 and 8 are most common in each category of the data.
+
+```{r}
+pld.IncomeRange <- subset(pld.ana, IncomeRange == "$1-24,999" | IncomeRange == "$25,000-49,999" | IncomeRange == "$50,000-74,999" | IncomeRange == "$75,000-99,999" | IncomeRange == "$100,000+")
+```
+
+
+```{r}
+# EstimatedReturn by IncomeRange
+ggplot(aes(EstimatedReturn), data = pld.IncomeRange) +
+  geom_freqpoly(aes(color = IncomeRange), binwidth = 0.005) +
+  xlim(0, 0.25)
+by(pld.ana$EstimatedReturn, pld.ana$IncomeRange, summary)
+```
+
+Among the Income ranges, $25,000-49,999 and $50,000-74,999 have the most frequencies; $75,000-99,999 and $100,000+ come next.
+Form the plot, we can see that the blue line($50,000-74,999) and green line ($25,000-49,999) have more counts than other ranges; but blue line and green line have different trends as the return goes more than around 0.08; the green line gets more counts than blue line afterwards.
+
+```{r}
+# TotalCreditLinespast7years by IncomeRange
+ggplot(aes(TotalCreditLinespast7years), data = pld.IncomeRange) +
+  geom_freqpoly(aes(color = IncomeRange))
+by(pld.ana$TotalCreditLinespast7years, pld.ana$IncomeRange, summary)
+```
+
+The green line ($25,000-49,999) has two modes for total credit lines, which are at around 13 and 25 respectively, and the latter one is also the mode of other ranges except the red line($1-24,999).
+
+```{r}
+# TotalInquiries by IncomeRange
+ggplot(aes(TotalInquiries), data = pld.IncomeRange) +
+  geom_freqpoly(aes(color = IncomeRange)) +
+  xlim(0, 10)
+by(pld.ana$TotalInquiries, pld.ana$IncomeRange, summary)
+```
+
+In this plot, all the ranges have approximate trends.
+
+```{r}
+# TotalTrades by IncomeRange
+ggplot(aes(TotalTrades), data = pld.IncomeRange) +
+  geom_freqpoly(aes(color = IncomeRange), binwidth = 5) +
+  coord_cartesian(xlim = c(0, 100))
+by(pld.ana$TotalTrades, pld.ana$IncomeRange, summary)
+```
+
+The mode of green line ($25,000-49,999) has less trades than that of other ranges except the red line.
+
+```{r}
+# DebtToIncomeRatio by IncomeRange
+ggplot(aes(DebtToIncomeRatio), data = pld.IncomeRange) +
+  geom_freqpoly(aes(color = IncomeRange), binwidth = 0.2) +
+  coord_cartesian(xlim = c(0, 1.5))
+by(pld.ana$DebtToIncomeRatio, pld.ana$IncomeRange, summary)
+```
+
+All the ranges have the same mode, but the green line ($25,000-49,999) decreases slower than the blue line ($50,000-74,999).
+
+```{r}
+# TotalProsperPaymentsBilled by IncomeRange
+ggplot(aes(TotalProsperPaymentsBilled), data = pld.IncomeRange) +
+  geom_freqpoly(aes(color = IncomeRange), binwidth = 5) +
+  coord_cartesian(xlim = c(0, 100))
+by(pld.ana$TotalProsperPaymentsBilled, pld.ana$IncomeRange, summary)
+```
+
+All ranges here have similar trends.
+
+```{r}
+# ProsperPrincipalBorrowed by IncomeRange
+ggplot(aes(ProsperPrincipalBorrowed), data = pld.IncomeRange) +
+  geom_freqpoly(aes(color = IncomeRange), binwidth = 1000) +
+  coord_cartesian(xlim = c(0, 40000))
+by(pld.ana$ProsperPrincipalBorrowed, pld.ana$IncomeRange, summary)
+```
+
+We can see here that the green line ($25,000-49,999) has different trends than other ranges, after principal borrowed larger tahn 20000, all ranges except the green one tend to be flatter, just the green one is still noisy.
+
+```{r}
+# ProsperPrincipalOutstanding by IncomeRange
+ggplot(aes(ProsperPrincipalOutstanding), data = pld.IncomeRange) +
+  geom_freqpoly(aes(color = IncomeRange)) +
+  coord_cartesian(xlim = c(0, 15000))
+by(pld.ana$ProsperPrincipalOutstanding, pld.ana$IncomeRange, summary)
+```
+
+
+
+```{r}
+# LoanOriginalAmount by IncomeRange
+ggplot(aes(LoanOriginalAmount), data = pld.IncomeRange) +
+  geom_freqpoly(aes(color = IncomeRange))
+by(pld.ana$LoanOriginalAmount, pld.ana$IncomeRange, summary)
+```
+
+
+
+```{r}
+# MonthlyLoanPayment by IncomeRange
+ggplot(aes(MonthlyLoanPayment), data = pld.IncomeRange) +
+  geom_freqpoly(aes(color = IncomeRange)) +
+  coord_cartesian(xlim = c(0, 1300))
+by(pld.ana$MonthlyLoanPayment, pld.ana$IncomeRange, summary)
+```
+
+The green line ($25,000-49,999) here decreases rapidly after the mode, from these plots above, we could see that the green line has relative different distribution than other ranges, so let me assume that the income range of $25,000-49,999 has more influence than other ranges.
+
+```{r}
+# EstimatedReturn by Occupation
+bplt_EstimatedReturn_by_Occupation <- ggplot(aes(x = Occupation, y = EstimatedReturn), data = subset(pld.Occupation, !is.na(EstimatedReturn))) +
+  geom_boxplot() +
+  coord_cartesian(ylim = c(0.05, 0.15))
+bplt_EstimatedReturn_by_Occupation
+
+pld.Occupation.EstimatedReturn_by_Occupation <- subset(pld.Occupation, !is.na(EstimatedReturn) & !is.na(Occupation)) %>%
+  group_by(Occupation) %>%
+  summarise(mean_EstimatedReturn = mean(EstimatedReturn),
+            median_EstimatedReturn = median(EstimatedReturn),
+            n = n()) %>%
+  arrange(Occupation)
+pld.Occupation.EstimatedReturn_by_Occupation 
+```
+
+Administrative Assistant has the highest mean and median values with other occupations a little bit less.
+
+```{r}
+# EstimatedReturn by ProsperScore
+bplt_EstimatedReturn_by_ProsperScore <- ggplot(aes(x = ProsperScore, y = EstimatedReturn), data = subset(pld.ana, !is.na(EstimatedReturn) & !is.na(ProsperScore))) +
+  geom_boxplot() +
+  coord_cartesian(ylim = c(0.025, 0.15))
+bplt_EstimatedReturn_by_ProsperScore
+
+pld.EstimatedReturn_by_ProsperScore <- subset(pld.ana, !is.na(EstimatedReturn) & !is.na(ProsperScore)) %>%
+  group_by(ProsperScore) %>%
+  summarise(mean_EstimatedReturn = mean(EstimatedReturn),
+            median_EstimatedReturn = median(EstimatedReturn),
+            n = n()) %>%
+  arrange(ProsperScore)
+pld.EstimatedReturn_by_ProsperScore
+```
+
+Generally, the return is decreasing as Prosper score becomes higher.
+
+```{r}
+# TotalCreditLinespast7years by Occupation
+bplt_TotalCreditLinepast7years_by_Occupation <- ggplot(aes(x = Occupation, y = TotalCreditLinespast7years), data = subset(pld.Occupation, !is.na(TotalCreditLinespast7years))) +
+  geom_boxplot() +
+  coord_cartesian(ylim = c(10, 45))
+bplt_TotalCreditLinepast7years_by_Occupation
+
+pld.Occupation.TotalCreditLinespast7years_by_Occupation <- subset(pld.Occupation, !is.na(TotalCreditLinespast7years)) %>%
+  group_by(Occupation) %>%
+  summarise(mean_TotalCreditLinespast7years = mean(TotalCreditLinespast7years),
+            median_TotalCreditLinespast7years = median(TotalCreditLinespast7years),
+            n = n()) %>%
+  arrange(Occupation)
+pld.Occupation.TotalCreditLinespast7years_by_Occupation 
+```
+
+Executive and Teacher have the higheset median, with Accoutant/CPA and Administrative Assistant the lowest. 
+
+```{r}
+# TotalCreditLinespast7years by ProsperScore
+bplt_TotalCreditLinepast7years_by_ProsperScore <-ggplot(aes(x = ProsperScore, y = TotalCreditLinespast7years), data = subset(pld.ana, !is.na(TotalCreditLinespast7years) & !is.na(ProsperScore))) +
+  geom_boxplot() +
+  coord_cartesian(ylim = c(10, 45))
+bplt_TotalCreditLinepast7years_by_ProsperScore
+
+pld.TotalCreditLinespast7years_by_ProsperScore <- subset(pld.ana, !is.na(TotalCreditLinespast7years)) %>%
+  group_by(ProsperScore) %>%
+  summarise(mean_TotalCreditLinespast7years = mean(TotalCreditLinespast7years),
+            median_TotalCreditLinespast7years = median(TotalCreditLinespast7years),
+            n = n()) %>%
+  arrange(ProsperScore)
+pld.TotalCreditLinespast7years_by_ProsperScore
+```
+
+As the Prosper score gets higher, the boxbplot has a shape of being close to a polynomial, which is decreaing first and then increasing.
+
+```{r}
+# TotalInquiries by Occupation
+bplt_TotalInquiries_by_Occupation <- ggplot(aes(x = Occupation, y = TotalInquiries), data = subset(pld.Occupation, !is.na(TotalInquiries))) +
+  geom_boxplot() +
+  coord_cartesian(ylim = c(0, 10))
+bplt_TotalInquiries_by_Occupation
+
+pld.Occupation.TotalInquiries_by_Occupation <- subset(pld.Occupation, !is.na(TotalInquiries)) %>%
+  group_by(Occupation) %>%
+  summarise(mean_TotalInquiries = mean(TotalInquiries),
+            median_TotalInquiries = median(TotalInquiries),
+            n = n()) %>%
+  arrange(Occupation)
+pld.Occupation.TotalInquiries_by_Occupation
+```
+
+Executive has the highest median, with other occupations equally less.
+
+```{r}
+# TotalInquiries by ProsperScore
+bplt_TotalInquiries_by_ProsperScore <- ggplot(aes(x = ProsperScore, y = TotalInquiries), data = subset(pld.ana, !is.na(TotalInquiries) & !is.na(ProsperScore))) +
+  geom_boxplot() +
+  coord_cartesian(ylim = c(0, 15))
+bplt_TotalInquiries_by_ProsperScore
+
+pld.TotalInquiries_by_ProsperScore <- subset(pld.ana, !is.na(TotalInquiries)) %>%
+  group_by(ProsperScore) %>%
+  summarise(mean_TotalInquiries = mean(TotalInquiries),
+            median_TotalInquiries = median(TotalInquiries),
+            n = n()) %>%
+  arrange(ProsperScore)
+pld.TotalInquiries_by_ProsperScore
+```
+
+Total inquiries decrease as score increases, and there is a bigger difference between the first 2 than between one another among score 2-11.
+
+```{r}
+# DelinquenciesLast7Years by Occupation
+bplt_DelinquenciesLast7Years_by_Occupation <- ggplot(aes(x = Occupation, y = DelinquenciesLast7Years), data = subset(pld.Occupation, !is.na(DelinquenciesLast7Years))) +
+  geom_boxplot() +
+  coord_cartesian(ylim = c(0, 5))
+bplt_DelinquenciesLast7Years_by_Occupation
+by(pld.Occupation$DelinquenciesLast7Years, pld.Occupation$Occupation, summary)
+```
+
+Every occupation here has median of 0, but Executive has the smallest variance while Administrative Assistant,  Sales - Commission and Teacher have the biggest.
+
+```{r}
+# DelinquenciesLast7Years by ProsperScore
+bplt_DelinquenciesLast7Years_by_ProsperScore <- ggplot(aes(x = ProsperScore, y = DelinquenciesLast7Years), data = subset(pld.ana, !is.na(DelinquenciesLast7Years) & !is.na(ProsperScore))) +
+  geom_boxplot() +
+  coord_cartesian(ylim = c(0, 8))
+bplt_DelinquenciesLast7Years_by_ProsperScore
+by(pld.ana$DelinquenciesLast7Years, pld.ana$ProsperScore, summary)
+```
+
+Just like other variables, the distribution of delinquencies get smaller as score gets higher.
+
+```{r}
+# TotalTrades by Occupation
+bplt_TotalTrades_by_Occupation <- ggplot(aes(x = Occupation, y = TotalTrades), data = subset(pld.Occupation, !is.na(TotalTrades))) +
+  geom_boxplot() +
+  coord_cartesian(ylim = c(10, 45))
+bplt_TotalTrades_by_Occupation
+
+pld.Occupation.TotalTrades_by_Occupation <- subset(pld.Occupation, !is.na(TotalTrades)) %>%
+  group_by(Occupation) %>%
+  summarise(mean_TotalTrades = mean(TotalTrades),
+            median_TotalTrades = median(TotalTrades),
+            n = n()) %>%
+  arrange(Occupation)
+pld.Occupation.TotalTrades_by_Occupation
+```
+
+Executive has the highest median values with Accoutant/CPA and Administrative Assistant the lowest. 
+
+```{r}
+# TotalTrades by ProsperScore
+bplt_TotalTrades_by_ProsperScore <- ggplot(aes(x = ProsperScore, y = TotalTrades), data = subset(pld.ana, !is.na(TotalTrades) & !is.na(ProsperScore))) +
+  geom_boxplot() +
+  coord_cartesian(ylim = c(12, 45))
+bplt_TotalTrades_by_ProsperScore
+
+pld.TotalTrades_by_ProsperScore <- subset(pld.ana, !is.na(TotalTrades)) %>%
+  group_by(ProsperScore) %>%
+  summarise(mean_TotalTrades = mean(TotalTrades),
+            median_TotalTrades = median(TotalTrades),
+            n = n()) %>%
+  arrange(ProsperScore)
+pld.TotalTrades_by_ProsperScore
+```
+
+Like the TotalCreditLineslast7years variable, as the Prosper score gets higher, the boxbplot has a shape of being close to a polynomial, which is decreasing first and then increasing, but relatively smaller changes.
+
+```{r}
+# DebtToIncomeRatio by Occupation
+bplt_DebtToIncomeRatio_by_Occupation <- ggplot(aes(x = Occupation, y = DebtToIncomeRatio), data = subset(pld.Occupation, !is.na(DebtToIncomeRatio))) +
+  geom_boxplot() +
+  coord_cartesian(ylim = c(0, 0.5))
+bplt_DebtToIncomeRatio_by_Occupation
+
+pld.Occupation.DebtToIncomeRatio_by_Occupation <- subset(pld.Occupation, !is.na(DebtToIncomeRatio)) %>%
+  group_by(Occupation) %>%
+  summarise(mean_DebtToIncomeRatio = mean(DebtToIncomeRatio),
+            median_DebtToIncomeRatio = median(DebtToIncomeRatio),
+            n = n()) %>%
+  arrange(Occupation)
+pld.Occupation.DebtToIncomeRatio_by_Occupation
+```
+
+Administrative Assistant and Teacher have the highest median, with  Computer Programmer and Executive the lowest.
+
+```{r}
+# DebtToIncomeRatio by ProsperScore
+bplt_DebtToIncomeRatio_by_ProsperScore <- ggplot(aes(x = ProsperScore, y = DebtToIncomeRatio), data = subset(pld.ana, !is.na(DebtToIncomeRatio) & !is.na(ProsperScore))) +
+  geom_boxplot() +
+  coord_cartesian(ylim = c(0.05, 0.45))
+bplt_DebtToIncomeRatio_by_ProsperScore
+
+pld.DebtToIncomeRatio_by_ProsperScore <- subset(pld.ana, !is.na(DebtToIncomeRatio)) %>%
+  group_by(ProsperScore) %>%
+  summarise(mean_DebtToIncomeRatio = mean(DebtToIncomeRatio),
+            median_DebtToIncomeRatio = median(DebtToIncomeRatio),
+            n = n()) %>%
+  arrange(ProsperScore)
+pld.DebtToIncomeRatio_by_ProsperScore
+```
+
+DebtToIncomeRatio is clearly dereasing when score gets higher.
+
+```{r}
+# TotalProsperPaymentsBilled by Occupation
+bplt_TotalProsperPaymentsBilled_by_Occupation <- ggplot(aes(x = Occupation, y = TotalProsperPaymentsBilled), data = subset(pld.Occupation, !is.na(TotalProsperPaymentsBilled))) +
+  geom_boxplot() +
+  coord_cartesian(ylim = c(0, 45))
+bplt_TotalProsperPaymentsBilled_by_Occupation
+
+pld.Occupation.TotalProsperPaymentsBilled_by_Occupation <- subset(pld.Occupation, !is.na(TotalProsperPaymentsBilled)) %>%
+  group_by(Occupation) %>%
+  summarise(mean_TotalProsperPaymentsBilled = mean(TotalProsperPaymentsBilled),
+            median_TotalProsperPaymentsBilled = median(TotalProsperPaymentsBilled),
+            n = n()) %>%
+  arrange(Occupation)
+pld.Occupation.TotalProsperPaymentsBilled_by_Occupation 
+```
+
+All occupation have similar median values.
+
+```{r}
+# TotalProsperPaymentsBilled by ProsperScore
+bplt_TotalProsperPaymentsBilled_by_ProsperScore <- ggplot(aes(x = ProsperScore, y = TotalProsperPaymentsBilled), data = subset(pld.ana, !is.na(TotalProsperPaymentsBilled) & !is.na(ProsperScore))) +
+  geom_boxplot() +
+  coord_cartesian(ylim = c(5, 45))
+bplt_TotalProsperPaymentsBilled_by_ProsperScore
+
+pld.TotalProsperPaymentsBilled_by_ProsperScore <- subset(pld.ana, !is.na(TotalProsperPaymentsBilled)) %>%
+  group_by(ProsperScore)%>%
+  summarise(mean_TotalProsperPaymentsBilled = mean(TotalProsperPaymentsBilled),
+            median_TotalProsperPaymentsBilled = median(TotalProsperPaymentsBilled),
+            n = n()) %>%
+  arrange(ProsperScore)
+pld.TotalProsperPaymentsBilled_by_ProsperScore
+```
+
+The values don't have much big difference among all scores.
+
+```{r}
+# ProsperPrincipalBorrowed by Occupation
+bplt_ProsperPrincipalBorrowed_by_Occupation <- ggplot(aes(x = Occupation, y = ProsperPrincipalBorrowed), data = subset(pld.Occupation, !is.na(ProsperPrincipalBorrowed))) +
+  geom_boxplot() +
+  coord_cartesian(ylim = c(0, 15000))
+bplt_ProsperPrincipalBorrowed_by_Occupation
+
+pld.Occupation.ProsperPrincipalBorrowed_by_Occupation <- subset(pld.Occupation, !is.na(ProsperPrincipalBorrowed)) %>%
+  group_by(Occupation) %>%
+  summarise(mean_ProsperPrincipalBorrowed = mean(ProsperPrincipalBorrowed),
+            median_ProsperPrincipalBorrowed = median(ProsperPrincipalBorrowed),
+            n = n()) %>%
+  arrange(Occupation)
+pld.Occupation.ProsperPrincipalBorrowed_by_Occupation
+```
+
+Executive has the highest values with Administrative Assistant the lowest.
+
+```{r}
+# ProsperPrincipalBorrowed by ProsperScore
+bplt_ProsperPrincipalBorrowed_by_ProsperScore <- ggplot(aes(x = ProsperScore, y = ProsperPrincipalBorrowed), data = subset(pld.ana, !is.na(ProsperPrincipalBorrowed) & !is.na(ProsperScore))) +
+  geom_boxplot() +
+  coord_cartesian(ylim = c(0, 22000))
+bplt_ProsperPrincipalBorrowed_by_ProsperScore
+
+pld.ProsperPrincipalBorrowed_by_ProsperScore <-  subset(pld.ana, !is.na(ProsperPrincipalBorrowed)) %>%
+  group_by(ProsperScore) %>%
+  summarise(mean_ProsperPrincipalBorrowed = mean(ProsperPrincipalBorrowed),
+            median_ProsperPrincipalBorrowed = median(ProsperPrincipalBorrowed),
+            n = n()) %>%
+  arrange(ProsperScore)
+pld.ProsperPrincipalBorrowed_by_ProsperScore
+```
+
+In contrast to previous trend, the principal borrowed increases as score increases, and there is two times difference between score 11 and score 1.
+
+```{r}
+# ProsperPrincipalOutstanding by Occupation
+bplt_ProsperPrincipalOutstanding_by_Occupation <- ggplot(aes(x = Occupation, y = ProsperPrincipalOutstanding), data = subset(pld.Occupation, !is.na(ProsperPrincipalOutstanding))) +
+  geom_boxplot() +
+  coord_cartesian(ylim = c(0, 7500))
+bplt_ProsperPrincipalOutstanding_by_Occupation
+
+pld.Occupation.ProsperPrincipalOutstanding_by_Occupation <- subset(pld.Occupation, !is.na(ProsperPrincipalOutstanding)) %>%
+  group_by(Occupation) %>%
+  summarise(mean_ProsperPrincipalOutstanding = mean(ProsperPrincipalOutstanding), 
+            median_ProsperPrincipalOutstanding = median(ProsperPrincipalOutstanding),
+            n = n()) %>%
+  arrange(Occupation)
+pld.Occupation.ProsperPrincipalOutstanding_by_Occupation
+```
+  
+As usual, Executive has the highest median, but now it gets much higher values than other occupations, which have similar values
+  
+```{r}
+# ProsperPrincipalOutstanding by ProsperScore
+bplt_ProsperPrincipalOutstanding_by_ProsperScore <- ggplot(aes(x = ProsperScore, y = ProsperPrincipalOutstanding), data = subset(pld.ana, !is.na(ProsperPrincipalOutstanding) & !is.na(ProsperScore))) +
+  geom_boxplot() +
+  coord_cartesian(ylim = c(0, 8000))
+bplt_ProsperPrincipalOutstanding_by_ProsperScore
+
+pld.ProsperPrincipalOutstanding_by_ProsperScore <- subset(pld.ana, !is.na(ProsperPrincipalOutstanding)) %>%
+  group_by(ProsperScore) %>%
+  summarise(mean_ProsperPrincipalOutstanding = mean(ProsperPrincipalOutstanding),
+            median_ProsperPrincipalOutstanding = median(ProsperPrincipalOutstanding),
+            n = n()) %>%
+  arrange(ProsperScore)
+pld.ProsperPrincipalOutstanding_by_ProsperScore
+```
+
+
+
+```{r}
+# LoanOriginalAmount by Occupation
+bplt_LoanOriginalAmount_by_Occupation <- ggplot(aes(x = Occupation, y = LoanOriginalAmount), data = subset(pld.Occupation, !is.na(LoanOriginalAmount))) +
+  geom_boxplot() +
+  coord_cartesian(ylim = c(0, 18000))
+bplt_LoanOriginalAmount_by_Occupation
+
+pld.Occupation.LoanOriginalAmount_by_Occupation <- subset(pld.Occupation, !is.na(LoanOriginalAmount)) %>%
+  group_by(Occupation) %>%
+  summarise(mean_LoanOriginalAmount = mean(LoanOriginalAmount),
+            median_LoanOriginalAmount = median(LoanOriginalAmount),
+            n = n()) %>%
+  arrange(Occupation)
+pld.Occupation.LoanOriginalAmount_by_Occupation
+```
+
+Executive has the highest values with Administrative Assistant the lowest.
+
+```{r}
+# LoanOriginalAmount by ProsperScore
+bplt_LoanOriginalAmount_by_ProsperScore <- ggplot(aes(x = ProsperScore, y = LoanOriginalAmount), data = subset(pld.ana, !is.na(LoanOriginalAmount) & !is.na(ProsperScore))) +
+  geom_boxplot() +
+  coord_cartesian(ylim = c(0, 20000))
+bplt_LoanOriginalAmount_by_ProsperScore
+
+pld.LoanOriginalAmount_by_ProsperScore <- subset(pld.ana, !is.na(LoanOriginalAmount)) %>%
+  group_by(ProsperScore) %>%
+  summarise(mean_LoanOriginalAmount = mean(LoanOriginalAmount),
+            median_LoanOriginalAmount = median(LoanOriginalAmount),
+            n = n()) %>%
+  arrange(ProsperScore)
+pld.LoanOriginalAmount_by_ProsperScore
+```
+
+There a huge gap between score 1 and score 11. The original amount is getting higher fast as score get higher so that the value's more than 3 times when it comes to score 11.
+
+```{r}
+# MonthlyLoanPayment by Occupation
+bplt_MonthlyLoanPayment_by_Occupation <- ggplot(aes(x = Occupation, y = MonthlyLoanPayment), data = subset(pld.Occupation, !is.na(MonthlyLoanPayment))) +
+  geom_boxplot() +
+  coord_cartesian(ylim = c(0, 600))
+bplt_MonthlyLoanPayment_by_Occupation
+
+pld.Occupation.MonthlyLoanPayment_by_Occupation <- subset(pld.Occupation, !is.na(MonthlyLoanPayment)) %>%
+  group_by(Occupation) %>%
+  summarise(mean_MonthlyLoanPayment = mean(MonthlyLoanPayment),
+            median_MonthlyLoanPayment = median(MonthlyLoanPayment),
+            n = n()) %>%
+  arrange(Occupation)
+pld.Occupation.MonthlyLoanPayment_by_Occupation
+```
+
+As above, Executive has the highest values with Administrative Assistant the lowest.
+
+```{r}
+# MonthlyLoanPayment by ProsperScore
+bplt_MonthlyLoanPayment_by_ProsperScore <- ggplot(aes(x = ProsperScore, y = MonthlyLoanPayment), data = subset(pld.ana, !is.na(MonthlyLoanPayment) & !is.na(ProsperScore))) +
+  geom_boxplot() +
+  coord_cartesian(ylim = c(0, 600))
+bplt_MonthlyLoanPayment_by_ProsperScore
+
+pld.MonthlyLoanPayment_by_ProsperScore <- subset(pld.ana, !is.na(MonthlyLoanPayment)) %>%
+  group_by(ProsperScore) %>%
+  summarise(mean_MonthlyLoanPayment = mean(MonthlyLoanPayment),
+            median_MonthlyLoanPayment = median(MonthlyLoanPayment),
+            n = n()) %>%
+  arrange(ProsperScore)
+pld.MonthlyLoanPayment_by_ProsperScore
+```
+
+There a huge gap between score 1 and score 11 as in variable LoanOriginalAmount. And there is neary 3 times difference between score 1 and score 11.
+
+In summary, the occupations of Administrative Assistant and Executive have more influence and the Prosper scores generally have monotonically positive or negative effects.
+
+#Bivariate Analysis
+```{r}
+# scatterplot of TotalCreditLinespast7years and EstimatedReturn
+ggplot(aes(x = TotalCreditLinespast7years, y = EstimatedReturn), data = subset(pld, !is.na(EstimatedReturn) & !is.na(TotalCreditLinespast7years))) +
+  geom_point(alpha = 1/20, position = "jitter") +
+  geom_line(stat = "summary", fun.y = mean, color = "blue", lwd = 1 ) +
+  geom_line(stat = "summary", fun.y = median, color = "orange", linetype = 2, lwd = 1)+
+  stat_quantile(quantiles = c(0.25, 0.75), color = "green", linetype = 3, lwd = 1)
+
+# correlation between TotalCreditLinespast7years and EstimatedReturn
+cor.test(pld$TotalCreditLinespast7years, pld$EstimatedReturn, method = "pearson")
+```
+
+The correlation is -0.036, which is a very small value as for the linear relationship between EstimatedReturn and TotalCreditLineslast7years, as we can see from the scatterplot, whose mean, median and quantile lines are almost paralell to the x-axis, and when the credit lines come to the value of 75, the lines become more noisy compared to the previous ones.
+
+```{r}
+# scatterplot of TotalInquiries and EstimatedReturn
+ggplot(aes(x = TotalInquiries, y = EstimatedReturn), data = subset(pld, !is.na(EstimatedReturn) & !is.na(TotalInquiries))) +
+  geom_point(alpha = 1/20, position = "jitter") +
+  geom_line(stat = "summary", fun.y = mean, color = "blue", lwd = 1) +
+  geom_line(stat = "summary", fun.y = median, color = "orange", linetype = 2, lwd = 1)+
+  stat_quantile(quantiles = c(0.25, 0.75), color = "green", linetype = 3, lwd = 1)
+
+# correlation between TotalInquiries and EstimatedReturn
+cor.test(pld$TotalInquiries, pld$EstimatedReturn, method = "pearson")
+```
+
+The correlation here is 0.084, which is also very small but positive, meaning that even though the linear relationship between EstimatedReturn and TotalInquiries is very tiny but there is a positive linear relationship which is contrary to the relationship between EstimatedReturn and TotalCreditLineslast7years. ANd more than that, there is a big gap at some point in the plot.
+
+```{r}
+# scatterplot of DelinquenciesLast7Years and EstimatedReturn
+ggplot(aes(x = DelinquenciesLast7Years, y = EstimatedReturn), data = subset(pld, !is.na(EstimatedReturn) & !is.na(DelinquenciesLast7Years))) +
+  geom_point(alpha = 1/20, position = "jitter") +
+  geom_line(stat = "summary", fun.y = mean, color = "blue", lwd = 1) +
+  geom_line(stat = "summary", fun.y = median, color = "orange", linetype = 2, lwd = 1)+
+  stat_quantile(quantiles = c(0.25, 0.75), color = "green", linetype = 3, lwd = 1) 
+
+# correlation between DelinquenciesLast7Years and EstimatedReturn
+cor.test(pld$DelinquenciesLast7Years, pld$EstimatedReturn, method = "pearson")
+```
+
+Most of points here are centered at the x = 0, where delinquency is euqal to 0, and the linear relationship is not big as well, but the distribution is more even compared to previous two.
+
+```{r}
+# scatterplot of TotalTrades and EstimatedReturn
+ggplot(aes(x = TotalTrades, y = EstimatedReturn), data = subset(pld, !is.na(EstimatedReturn) & !is.na(TotalTrades))) +
+  geom_point(alpha = 1/20, position = "jitter") +
+  geom_line(stat = "summary", fun.y = mean, color = "blue", lwd = 1) +
+  geom_line(stat = "summary", fun.y = median, color = "orange", linetype = 2, lwd = 1)+
+  stat_quantile(quantiles = c(0.25, 0.75), color = "green", linetype = 3, lwd = 1) 
+
+# correlation between TotalTrades and EstimatedReturn
+cor.test(pld$TotalTrades, pld$EstimatedReturn, method = "pearson")
+```
+
+The relationship between EstimatedReturn and TotalTrades is negative, and the points are mostly cencered in some area where return is between 0.05 and 0.13, and trades are  between 6 to 37.
+
+```{r}
+# scatterplot of DebtToIncomeRatio and EstimatedReturn
+ggplot(aes(x = DebtToIncomeRatio, y = EstimatedReturn), data = subset(pld, !is.na(EstimatedReturn) & !is.na(DebtToIncomeRatio))) +
+  geom_point(alpha = 1/20, position = "jitter") +
+  geom_line(stat = "summary", fun.y = mean, color = "blue", lwd = 1) +
+  geom_line(stat = "summary", fun.y = median, color = "orange", linetype = 2, lwd = 1)+
+  stat_quantile(quantiles = c(0.25, 0.75), color = "green", linetype = 3, lwd = 1)
+
+# correlation between DebtToIncomeRatio and EstimatedReturn
+cor.test(pld$DebtToIncomeRatio, pld$EstimatedReturn, method = "pearson")
+```
+
+The points are center in a small area, and the two quantile lines is positively sloped meaning that the two variables are positively related, whose correlation is 0.087, not big, but somehow linear relatd.
+
+```{r}
+# scatterplot of TotalProsperPaymentsBilled and EstimatedReturn
+ggplot(aes(x = TotalProsperPaymentsBilled, y = EstimatedReturn), data = subset(pld, !is.na(EstimatedReturn) & !is.na(TotalProsperPaymentsBilled))) +
+  geom_point(alpha = 1/20, position = "jitter") +
+  geom_line(stat = "summary", fun.y = mean, color = "blue", lwd = 1) +
+  geom_line(stat = "summary", fun.y = median, color = "orange", linetype = 2, lwd = 1)+
+  stat_quantile(quantiles = c(0.25, 0.75), color = "green", linetype = 3, lwd = 1)  
+
+# correlation between TotalProsperPaymentsBilled and EstimatedReturn
+cor.test(pld$TotalProsperPaymentsBilled, pld$EstimatedReturn, method = "pearson")
+```
+
+The poins here are not so centerd as above, and the lines are almost horizontal, as the correlation test shows, the correlation between EstimatedReturn and TotalProsperPaymentsBilled is -0.026, which is hardly related.
+
+```{r}
+# scatterplot of ProsperPrincipalBorrowed and EstimatedReturn
+ggplot(aes(x = log(ProsperPrincipalBorrowed+1), y = EstimatedReturn), data = subset(pld, !is.na(EstimatedReturn) & !is.na(ProsperPrincipalBorrowed))) +
+  geom_point(alpha = 1/20, position = "jitter") +
+  stat_quantile(quantiles = c(0.25, 0.5, 0.75), aes(color = ..quantile..), lwd = 1)
+
+# correlation between ProsperPrincipalBorrowed and EstimatedReturn
+cor.test(pld$ProsperPrincipalBorrowed, pld$EstimatedReturn, method = "pearson")
+```
+
+compared to the other variables, EstimatedReturn and ProsperPrincipalBorrowed are much more related, whose corralation is -0.167.
+
+```{r}
+# scatterplot of ProsperPrincipalOutstanding and EstimatedReturn
+ggplot(aes(x = log(ProsperPrincipalOutstanding+1), y = EstimatedReturn), data = subset(pld, !is.na(EstimatedReturn) & !is.na(ProsperPrincipalOutstanding))) +
+  geom_point(alpha = 1/20, position = "jitter") +
+  stat_quantile(quantiles = c(0.25, 0.5, 0.75), aes(color = ..quantile..), lwd = 1)
+
+# correlation between ProsperPrincipalBorrowed and EstimatedReturn
+cor.test(pld$ProsperPrincipalOutstanding, pld$EstimatedReturn, method = "pearson")
+```
+
+However, the relationship between EstimatedReturn and ProsperPrincipalOutstanding is small, and the most of the points are at the line of x = 0.
+
+```{r}
+# scatterplot of LoanOriginalAmount and EstimatedReturn
+ggplot(aes(x = log(LoanOriginalAmount+1), y = EstimatedReturn), data = subset(pld, !is.na(EstimatedReturn) & !is.na(LoanOriginalAmount))) +
+  geom_point(alpha = 1/20, position = "jitter") +
+  stat_quantile(quantiles = c(0.25, 0.5, 0.75), aes(color = ..quantile..), lwd = 1)
+
+# correlation between LoanOriginalAmount and EstimatedReturn
+cor.test(pld$LoanOriginalAmount, pld$EstimatedReturn, method = "pearson")
+```
+
+Like the relationship with the ProsperPrincipalBorrowed, the relationship between EstimatedReturn and LoanOriginalAmount has relative high relationship and negatively related.
+
+```{r}
+# scatterplot of MonthlyLoanPayment and EstimatedReturn
+ggplot(aes(x = MonthlyLoanPayment, y = EstimatedReturn), data = subset(pld, !is.na(EstimatedReturn) & !is.na(MonthlyLoanPayment))) +
+  geom_point(alpha = 1/20, position = "jitter") +
+  stat_quantile(quantiles = c(0.25, 0.5, 0.75), aes(color = ..quantile..), lwd = 2) +
+  scale_x_continuous(limits = c(0, 1500), breaks = seq(0, 1500, 250))
+
+# correlation between MonthlyLoanPayment and EstimatedReturn
+cor.test(pld$MonthlyLoanPayment, pld$EstimatedReturn, method = "pearson")
+```
+
+The relationship between EstimatedReturn and MonthlyLoanPayment is approimately the same as the relationship between EstimatedReturn and LoanOriginalAmount, negative and relatively high.
+
+
+# Multivariate Analysis
+```{r}
+# scatterplot of TotalCreditLinespast7years and EstimatedReturn by IsBorrowerHomeowner and smooth line added
+ggplot(aes(x = TotalCreditLinespast7years, y = EstimatedReturn, color = IsBorrowerHomeowner), data = subset(pld, !is.na(EstimatedReturn) & !is.na(TotalCreditLinespast7years))) +
+  geom_line()+
+  geom_smooth()
+```
+
+adding another variable IsBorrowerHomeowner, we can see that in the relationship between EstimatedReturn and TotalCreditLinespast7years, before some point, homeowner leads to slightly lower return than non-homeowner, but after that, homeowner increases the return largely so that there is a clear difference between the two.
+
+```{r}
+# scatterplot of TotalInquiries and EstimatedReturn by IsBorrowerHomeowner and smooth line added
+ggplot(aes(x = TotalInquiries, y = EstimatedReturn, color = IsBorrowerHomeowner), data = subset(pld, !is.na(EstimatedReturn) & !is.na(TotalInquiries))) +
+  geom_line()+
+  geom_smooth() +
+  ylim(0, 0.2)
+```
+
+```{r}
+# scatterplot of DelinquenciesLast7Years and EstimatedReturn by IsBorrowerHomeowner and smooth line added
+ggplot(aes(x = DelinquenciesLast7Years, y = EstimatedReturn, color = IsBorrowerHomeowner), data = subset(pld, !is.na(EstimatedReturn) & !is.na(DelinquenciesLast7Years))) +
+  geom_line() +
+  geom_smooth()
+```
+
+```{r}
+# scatterplot of TotalTrades and EstimatedReturn by IsBorrowerHomeowner and smooth line added
+ggplot(aes(x = TotalTrades, y = EstimatedReturn, color = IsBorrowerHomeowner), data = subset(pld, !is.na(EstimatedReturn) & !is.na(TotalTrades))) +
+  geom_line() +
+  geom_smooth()
+```
+
+There is the some trend for the relationship between EstimatedReturn that happens in the plot of Estimatedreturn and TotalCreditLinespast7years, just there is a bigger gap at the end in this plot.
+
+```{r}
+# scatterplot of DebtToIncomeRatio and EstimatedReturn by IsBorrowerHomeowner and smooth line added
+ggplot(aes(x = DebtToIncomeRatio, y = EstimatedReturn, color = IsBorrowerHomeowner), data = subset(pld, !is.na(EstimatedReturn) & !is.na(DebtToIncomeRatio))) +
+  geom_line() +
+  geom_smooth()
+```
+
+
+
+```{r}
+# scatterplot of TotalProsperPaymentsBilled and EstimatedReturn by IsBorrowerHomeowner and smooth line added
+ggplot(aes(x = TotalProsperPaymentsBilled, y = EstimatedReturn, color = IsBorrowerHomeowner), data = subset(pld, !is.na(EstimatedReturn) & !is.na(TotalProsperPaymentsBilled))) +
+  geom_line() +
+  geom_smooth()
+```
+
+There is more noise for the red line, which could mean that it is not so stable for non-homeowner than for homeowner to pay on time.
+
+```{r}
+# scatterplot of ProsperPrincipalBorrowed and EstimatedReturn by IsBorrowerHomeowner and smooth line added
+ggplot(aes(x = ProsperPrincipalBorrowed, y = EstimatedReturn, color = IsBorrowerHomeowner), data = subset(pld, !is.na(EstimatedReturn) & !is.na(ProsperPrincipalBorrowed))) +
+  geom_line() +
+  geom_smooth()
+```
+
+```{r}
+# scatterplot of ProsperPrincipalOutstanding and EstimatedReturn by IsBorrowerHomeowner and smooth line added
+ggplot(aes(x = ProsperPrincipalOutstanding, y = EstimatedReturn, color = IsBorrowerHomeowner), data = subset(pld, !is.na(EstimatedReturn) & !is.na(ProsperPrincipalOutstanding))) +
+  geom_line() +
+  geom_smooth()
+```
+
+```{r}
+# scatterplot of LoanOriginalAmount and EstimatedReturn by IsBorrowerHomeowner and smooth line added
+ggplot(aes(x = LoanOriginalAmount, y = EstimatedReturn, color = IsBorrowerHomeowner), data = subset(pld, !is.na(EstimatedReturn) & !is.na(LoanOriginalAmount))) +
+  geom_line() +
+  geom_smooth()
+```
+
+```{r}
+# scatterplot of MonthlyLoanPayment and EstimatedReturn by IsBorrowerHomeowner and smooth line added
+ggplot(aes(x = MonthlyLoanPayment, y = EstimatedReturn, color = IsBorrowerHomeowner), data = subset(pld, !is.na(EstimatedReturn) & !is.na(MonthlyLoanPayment))) +
+  geom_line() +
+  geom_smooth()
+```
+
+In general, homeowner or not does not have much influence on the relationship between EstimatedReturn and other variables.
+
+```{r fig.width = 15, fig.height = 15}
+# another two variables Occupation and IncomeRange added on TotalCreditLinespast7years and EstimatedReturn
+ggplot(aes(x = TotalCreditLinespast7years, y = EstimatedReturn, color = IsBorrowerHomeowner), data = subset(pld.Occupation, !is.na(EstimatedReturn) & !is.na(TotalCreditLinespast7years)))+
+  geom_line(stat = "summary", fun.y = median) +
+  geom_smooth() +
+  facet_grid(Occupation ~ IncomeRange)
+```
+
+
+
+```{r fig.width = 15, fig.height = 15}
+# another two variables Occupation and IncomeRange added on TotalInquiries and EstimatedReturn
+ggplot(aes(x = TotalInquiries, y = EstimatedReturn, color = IsBorrowerHomeowner), data = subset(pld.Occupation, !is.na(EstimatedReturn) & !is.na(TotalInquiries))) +
+  geom_line(stat = "summary", fun.y = median)+
+  geom_smooth() +
+  ylim(0, 0.2) +
+  facet_grid(Occupation ~ IncomeRange)
+```
+
+
+
+```{r fig.width = 15, fig.height = 15}
+# another two variables Occupation and IncomeRange added on DelinquenciesLast7Years and EstimatedReturn
+ggplot(aes(x = DelinquenciesLast7Years, y = EstimatedReturn, color = IsBorrowerHomeowner), data = subset(pld.Occupation, !is.na(EstimatedReturn) & !is.na(DelinquenciesLast7Years))) +
+  geom_line(stat = "summary", fun.y = median) +
+  geom_smooth() +
+  facet_grid(Occupation ~ IncomeRange)
+```
+
+
+
+```{r fig.width = 15, fig.height = 15}
+# another two variables Occupation and IncomeRange added on TotalTrades and EstimatedReturn
+ggplot(aes(x = TotalTrades, y = EstimatedReturn, color = IsBorrowerHomeowner), data = subset(pld.Occupation, !is.na(EstimatedReturn) & !is.na(TotalTrades))) +
+  geom_line(stat = "summary", fun.y = median) +
+  geom_smooth() +
+  facet_grid(Occupation ~ IncomeRange)
+```
+
+
+
+```{r fig.width = 15, fig.height = 15}
+# another two variables Occupation and DebtToIncomeRatio added on TotalTrades and EstimatedReturn
+ggplot(aes(x = DebtToIncomeRatio, y = EstimatedReturn, color = IsBorrowerHomeowner), data = subset(pld.Occupation, !is.na(EstimatedReturn) & !is.na(DebtToIncomeRatio))) +
+  geom_line(stat = "summary", fun.y = median) +
+  geom_smooth() +
+  facet_grid(Occupation ~ IncomeRange)
+```
+
+
+```{r fig.width = 15, fig.height = 15}
+# another two variables Occupation and TotalProsperPaymentsBilled added on TotalTrades and EstimatedReturn
+ggplot(aes(x = TotalProsperPaymentsBilled, y = EstimatedReturn, color = IsBorrowerHomeowner), data = subset(pld.Occupation, !is.na(EstimatedReturn) & !is.na(TotalProsperPaymentsBilled))) +
+  geom_line(stat = "summary", fun.y = median) +
+  geom_smooth() +
+  facet_grid(Occupation ~ IncomeRange)
+```
+
+
+
+```{r fig.width = 15, fig.height = 15}
+# another two variables Occupation and ProsperPrincipalBorrowed added on TotalTrades and EstimatedReturn
+ggplot(aes(x = ProsperPrincipalBorrowed, y = EstimatedReturn, color = IsBorrowerHomeowner), data = subset(pld.Occupation, !is.na(EstimatedReturn) & !is.na(ProsperPrincipalBorrowed))) +
+  geom_line(stat = "summary", fun.y = median) +
+  geom_smooth() +
+  facet_grid(Occupation ~ IncomeRange)
+```
+
+
+```{r fig.width = 15, fig.height = 15}
+# another two variables Occupation and ProsperPrincipalOutstanding added on TotalTrades and EstimatedReturn
+ggplot(aes(x = ProsperPrincipalOutstanding, y = EstimatedReturn, color = IsBorrowerHomeowner), data = subset(pld.Occupation, !is.na(EstimatedReturn) & !is.na(ProsperPrincipalOutstanding))) +
+  geom_line(stat = "summary", fun.y = median) +
+  geom_smooth() +
+  facet_grid(Occupation ~ IncomeRange)
+```
+
+
+```{r fig.width = 15, fig.height = 15}
+# another two variables Occupation and LoanOriginalAmount added on TotalTrades and EstimatedReturn
+ggplot(aes(x = LoanOriginalAmount, y = EstimatedReturn, color = IsBorrowerHomeowner), data = subset(pld.Occupation, !is.na(EstimatedReturn) & !is.na(LoanOriginalAmount))) +
+  geom_line(stat = "summary", fun.y = median) +
+  geom_smooth() +
+  facet_grid(Occupation  ~ IncomeRange)
+```
+
+
+```{r fig.width = 15, fig.height = 15}
+# another two variables Occupation and MonthlyLoanPayment added on TotalTrades and EstimatedReturn
+ggplot(aes(x = MonthlyLoanPayment, y = EstimatedReturn, color = IsBorrowerHomeowner), data = subset(pld.Occupation, !is.na(EstimatedReturn) & !is.na(MonthlyLoanPayment))) +
+  geom_line(stat = "summary", fun.y = median) +
+  geom_smooth() +
+  facet_grid(Occupation ~ IncomeRange)
+```
+
+We can see from these plots, the IncomeRange of $25,000-49,999 is quietest range compared to other ranges, especially the range of $50,000-74,999; on the other hand, occupations of Administrative Assistant and Executive are most noisy.
+
+let's see some plots again.
+
+
+# Last Three Plots
+
+```{r}
+ggplot(aes(x = IncomeRange, y = EstimatedReturn), data = pld.IncomeRange) +
+  geom_boxplot() +
+  coord_cartesian(ylim = c(0.05, 0.15))
+```
+
+IncomeRanges of $1-24,999 has the highest median return value, but there are much less samples in the data than the range of $25,000-49,999, which got most samples in dataset, so ignoring this range, the range of $25,000-49,999 has the highest median return value.
+
+```{r}
+ggplot(aes(x = Occupation, y = EstimatedReturn), data = subset(pld.Occupation, !is.na(EstimatedReturn))) +
+  geom_boxplot() +
+  coord_cartesian(ylim = c(0.05, 0.15))
+```
+
+Administrative causes the highest median return.
+
+```{r fig.width = 15, fig.height = 15}
+p1 <- ggplot(aes(x = LoanOriginalAmount, y = EstimatedReturn, color = IsBorrowerHomeowner), data = subset(pld, !is.na(EstimatedReturn) & !is.na(LoanOriginalAmount))) +
+  geom_line() +
+  geom_smooth()
+
+p2 <- ggplot(aes(x = MonthlyLoanPayment, y = EstimatedReturn, color = IsBorrowerHomeowner), data = subset(pld, !is.na(EstimatedReturn) & !is.na(MonthlyLoanPayment))) +
+  geom_line() +
+  geom_smooth()
+
+grid.arrange(p1, p2, ncol = 2)
+```
+
+There is no big difference between homeowner or non-homeowner, but there are relatively high negative relationshiop between EstimatedReturn and LoanOriginalAmount, and between EstimatedReturn and MonthlyLoanPayment.
+
+Combined all the five plots together, we can see that these two particular groups, IncomeRange of $25,000-49,999 has most stable return, whereas Occupation of Administrative has the most unstable return, and at the meantime, it matters if the borrower is a homeowner or not.
+
+
+
